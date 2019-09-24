@@ -40,15 +40,6 @@ class Grid:
 				row.append([0,BACKGROUND_COLOR])
 			self.board.append(row)
 
-	# For testing
-	# TODO: DELETE
-	def print(self):
-		for j in range(self.height):
-			for i in range(self.width):
-				print(self.board[i][j][0], end = "")
-			print()
-		print()
-
 	def paint(self,i,j,color,linewidth = 0):
 		pygame.draw.rect(WINDOW, color, (i*SQUARE_SIZE, j*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE), linewidth)
 
