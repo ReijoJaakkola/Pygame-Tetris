@@ -353,6 +353,11 @@ def main():
 	clock = pygame.time.Clock()
 	piece = GAME_MANAGER.newPiece()
 
+	pygame.mixer.init()
+	pygame.mixer.music.load('tetris-gameboy-02.mp3')
+	pygame.mixer.music.play(-1)
+	clock.tick(1000)
+	
 	while GAME_MANAGER.GAME_OVER == False:
 		clock.tick(7)
 
