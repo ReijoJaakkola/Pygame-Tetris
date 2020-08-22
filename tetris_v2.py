@@ -18,6 +18,11 @@ SQUARE_SIZE = 25
 # Background color for the window
 BACKGROUND_COLOR = pygame.Color(0,0,0)
 
+# How many milliseconds one tick is.
+TICK = 25
+# How many ticks does the game wait until it moves the current piece down.
+TICKS = 20
+
 # Window where the game takes place.
 WINDOW = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 
@@ -188,13 +193,13 @@ class GameManager:
 			self.SONG = True
 			pygame.mixer.music.unpause()
 
-	def updatePreviewPiece(self, piece, clearPrevious = False):
-		if clearPrevious:
-			for square in self.PREVIEW_PIECE:
+	def updatePreviewPiece(self):
+		for square in self.PREVIEW_PIECE:
+			if not GRID.isReserved(square.i,square.j):
 				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
 
 		self.PREVIEW_PIECE = []
-		for square in piece:
+		for square in self.PIECE:
 			self.PREVIEW_PIECE.append(Square(square.i,square.j,square.color))
 
 		down = 0
@@ -288,59 +293,28 @@ class GameManager:
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(6,0,color)])
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(5,-1,color)])
 
-		self.updatePreviewPiece(self.PIECE)
+		self.updatePreviewPiece()
 	
 	def updateScore(self, rows):
 		# Player will gain 100 points for each row removed.
 		self.SCORE += rows * 100
 
-	def moveSquare(self,square,direction):
+	def movePiece(self,direction):
+		for square in self.PIECE:
+			GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
+
 		if direction == Direction.RIGHT:
-			GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
-			square.i += 1
-			GRID.paintSquare(square.i,square.j,square.color)
+			for square in self.PIECE:
+				square.i += 1
+				GRID.paintSquare(square.i,square.j,square.color)
 		elif direction == Direction.LEFT:
-			GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
-			square.i -= 1
-			GRID.paintSquare(square.i,square.j,square.color)
+			for square in self.PIECE:
+				square.i -= 1
+				GRID.paintSquare(square.i,square.j,square.color)
 		elif direction == Direction.DOWN:
-			GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
-			square.j += 1
-			GRID.paintSquare(square.i,square.j,square.color)
-
-	def movePreviewPieceRight(self):
-		for square in self.PREVIEW_PIECE:
-			if not GRID.isReserved(square.i,square.j):
-				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
-
-		up = 0
-		done = False
-		while not done:
-			moveAllowed = True
-			for square in self.PREVIEW_PIECE:
-				if GRID.isReserved(square.i + 1, square.j - up):
-					moveAllowed = False
-			if moveAllowed:
-				done = True
-			else:
-				up += 1
-
-		if up == 0:
-			done = False
-			while not done:
-				moveAllowed = True
-				for square in self.PREVIEW_PIECE:
-					if GRID.isReserved(square.i + 1, square.j - (up - 1)) or (square.j - (up - 1)) >= GRID.height:
-						moveAllowed = False
-				if not moveAllowed:
-					done = True
-				else:
-					up -= 1
-
-		for square in self.PREVIEW_PIECE:
-			square.i = square.i + 1
-			square.j = square.j - up
-			GRID.paintPreviewSquare(square.i,square.j,square.color)
+			for square in self.PIECE:
+				square.j += 1
+				GRID.paintSquare(square.i,square.j,square.color)
 
 	def movePieceRight(self):
 		okToMove = True
@@ -350,44 +324,9 @@ class GameManager:
 			elif square.i + 1 >= GRID.width:
 				okToMove = False
 		if okToMove == True:
-			for square in self.PIECE:
-				self.moveSquare(square, Direction.RIGHT)
-			self.movePreviewPieceRight()
+			self.movePiece(Direction.RIGHT)
+			self.updatePreviewPiece()
 			self.X_COORD_DIFF += 1
-
-	def movePreviewPieceLeft(self):
-		for square in self.PREVIEW_PIECE:
-			if not GRID.isReserved(square.i,square.j):
-				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
-
-		up = 0
-		done = False
-		while not done:
-			moveAllowed = True
-			for square in self.PREVIEW_PIECE:
-				if GRID.isReserved(square.i - 1, square.j - up):
-					moveAllowed = False
-			if moveAllowed:
-				done = True
-			else:
-				up += 1
-
-		if up == 0:
-			done = False
-			while not done:
-				moveAllowed = True
-				for square in self.PREVIEW_PIECE:
-					if GRID.isReserved(square.i - 1, square.j - (up - 1)) or (square.j - (up - 1)) >= GRID.height:
-						moveAllowed = False
-				if not moveAllowed:
-					done = True
-				else:
-					up -= 1
-
-		for square in self.PREVIEW_PIECE:
-			square.i = square.i - 1
-			square.j = square.j - up
-			GRID.paintPreviewSquare(square.i,square.j,square.color)
 
 	def movePieceLeft(self):
 		okToMove = True
@@ -397,9 +336,8 @@ class GameManager:
 			elif square.i - 1 < 0:
 				okToMove = False
 		if okToMove == True:
-			for square in self.PIECE:
-				self.moveSquare(square, Direction.LEFT)
-			self.movePreviewPieceLeft()
+			self.movePiece(Direction.LEFT)
+			self.updatePreviewPiece()
 			self.X_COORD_DIFF -= 1
 
 	def movePieceDown(self):
@@ -410,8 +348,7 @@ class GameManager:
 			elif square.j + 1 >= GRID.height:
 				okToMove = False
 		if okToMove == True:
-			for square in self.PIECE:
-				self.moveSquare(square, Direction.DOWN)
+			self.movePiece(Direction.DOWN)
 			self.NEW = False
 			self.Y_COORD_DIFF += 1
 		else:
@@ -432,7 +369,7 @@ class GameManager:
 			done = False
 			while done == False:
 				done = self.movePieceDown()
-				pygame.time.wait(25)
+				pygame.time.wait(TICK)
 				pygame.display.update()
 
 	def rotate(self):
@@ -464,7 +401,7 @@ class GameManager:
 			for square in ROTATION:
 				GRID.paintSquare(square.i,square.j,square.color)
 			self.PIECE = ROTATION
-			self.updatePreviewPiece(self.PIECES[self.NEXT_PIECE], True)
+			self.updatePreviewPiece()
 			self.NEXT_PIECE = (self.NEXT_PIECE  + 1) % 4
 
 GAME_MANAGER = GameManager()
@@ -472,12 +409,14 @@ GAME_MANAGER = GameManager()
 def main():
 	pygame.display.set_caption('Tetris')
 	WINDOW.fill(BACKGROUND_COLOR)
-	clock = pygame.time.Clock()
-	clock.tick(1)
+	
+	ticks = 0
+	pygame.time.wait(TICK)
 
 	GAME_MANAGER.newPiece()
 	while GAME_MANAGER.GAME_OVER == False:
-		clock.tick(7)
+		ticks += 1
+		pygame.time.wait(TICK)
 
 		# Go through the events
 		for event in pygame.event.get():
@@ -501,8 +440,9 @@ def main():
 				elif event.key == K_m:
 					GAME_MANAGER.musicOnOff()
 
-		# Move always the piece down.
-		GAME_MANAGER.movePieceDown()
+		if ticks == TICKS:
+			ticks = 0
+			GAME_MANAGER.movePieceDown()
 
 		# Update the window
 		pygame.display.update()
