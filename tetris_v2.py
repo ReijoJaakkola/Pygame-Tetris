@@ -7,9 +7,11 @@ import queue
 from enum import Enum
 from pygame.locals import *
 
+pygame.init()
+
 # WIDTH should be an even number.
 WIN_WIDTH = 250
-WIN_HEIGHT = 700
+WIN_HEIGHT = 650
 # Every square is of size SQUARE_SIZE^2. The code
 # assumes that SQUARE_SIZE * 10 = WIN_WIDTH.
 SQUARE_SIZE = 25
@@ -18,6 +20,9 @@ BACKGROUND_COLOR = pygame.Color(0,0,0)
 
 # Window where the game takes place.
 WINDOW = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+
+# Mp3 file containing the music.
+SONG = 'OmaKappale18.mp3'
 
 # Grid contains the information of which squares are currently
 # being used and what is the color of every square. Grid is also
@@ -45,9 +50,12 @@ class Grid:
 
 	def paintSquare(self,i,j,color):
 		if i >= 0 and j >= 0 and self.width > i and self.height > j:
-			self.board[i][j][1] = color
 			self.paint(i,j,color)
 			self.paint(i,j,pygame.Color(0,0,0),1)
+
+	def paintPreviewSquare(self,i,j,color):
+		if i >= 0 and j >= 0 and self.width > i and self.height > j:
+			self.paint(i,j,color,1)
 
 	def reserve(self,i,j,color):
 		if i >= 0 and j >= 0 and self.width > i and self.height > j:
@@ -103,6 +111,9 @@ class Grid:
 					self.paint(i, self.height - j - 1, square[1])
 					self.paint(i, self.height - j - 1, pygame.Color(0,0,0),1)
 
+		# Inform the game manager as to how many rows were removed.
+		return counter
+
 GRID = Grid()
 
 # Enum for the possible directions for the current piece.
@@ -140,6 +151,8 @@ class Square:
 # GameManager is also responsible for generating new pieces
 # for the player to move and actually moving them.
 class GameManager:
+	# Whether the game manager is playing the background song or not.
+	SONG = True
 	# Whether the current piece is new i.e. it has not been moved previously.
 	NEW = True
 	# Difference in x-coordinate with respect to the original one.
@@ -154,10 +167,24 @@ class GameManager:
 	NEXT_PIECE = 1
 	# List of squares which constitute the piece.
 	PIECE = []
+	# Current score.
+	SCORE = 0
 
 	def __init__(self):
 		self.GAME_OVER = False
+
+		# Start playing the song.
+		pygame.mixer.music.load('OmaKappale18.mp3')
+		pygame.mixer.music.play(-1)
 		
+	def musicOnOff(self):
+		if self.SONG:
+			self.SONG = False
+			pygame.mixer.music.pause()
+		else:
+			self.SONG = True
+			pygame.mixer.music.unpause()
+
 	def newPiece(self):
 		# Pick a random color
 		color = pygame.Color(0,0,0)
@@ -232,8 +259,11 @@ class GameManager:
 			self.PIECES.append([Square(5,1,color),Square(5,0,color),Square(6,0,color),Square(5,-1,color)])
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(6,0,color)])
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(5,-1,color)])
-
 	
+	def updateScore(self, rows):
+		# Player will gain 100 points for each row removed.
+		self.SCORE += rows * 100
+
 	def moveSquare(self,square,direction):
 		if direction == Direction.RIGHT:
 			GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
@@ -293,25 +323,18 @@ class GameManager:
 			else:
 				for square in self.PIECE:
 					GRID.reserve(square.i, square.j, square.color)
-				GRID.check()
+				# Remove all of the full rows...
+				numRowsRemoved = GRID.check()
+				# ... and update the current score based on how many rows were removed.
+				self.updateScore(numRowsRemoved)
 				self.newPiece()
 				return True
 		return False
-
-	
-	def move(self,direction):
-		if direction == Direction.RIGHT:
-			self.movePieceRight()
-		elif direction == Direction.LEFT:
-			self.movePieceLeft()
-		elif direction == Direction.DOWN:
-			self.movePieceDown()
 
 	def pushDown(self):
 			done = False
 			while done == False:
 				done = self.movePieceDown()
-
 
 	def rotate(self):
 		# Pic the next piece in the cycle.
@@ -344,20 +367,15 @@ class GameManager:
 			self.PIECE = ROTATION
 			self.NEXT_PIECE = (self.NEXT_PIECE  + 1) % 4
 
-
 GAME_MANAGER = GameManager()
 
-
 def main():
+	pygame.display.set_caption('Tetris')
 	WINDOW.fill(BACKGROUND_COLOR)
 	clock = pygame.time.Clock()
-	piece = GAME_MANAGER.newPiece()
+	clock.tick(1)
 
-	pygame.mixer.init()
-	pygame.mixer.music.load('OmaKappale18.mp3')
-	pygame.mixer.music.play(-1)
-	clock.tick(1000)
-	
+	GAME_MANAGER.newPiece()
 	while GAME_MANAGER.GAME_OVER == False:
 		clock.tick(7)
 
@@ -370,18 +388,21 @@ def main():
 				# User pressed key button. Move the current piece according
 				# to the key pressed.
 				if event.key == K_LEFT:
-					GAME_MANAGER.move(Direction.LEFT)
+					GAME_MANAGER.movePieceLeft();
 				elif event.key == K_RIGHT:
-					GAME_MANAGER.move(Direction.RIGHT)
+					GAME_MANAGER.movePieceRight();
 				# User pressed down key --> move the current peace to bottom.
 				elif event.key == K_DOWN:
 					GAME_MANAGER.pushDown()
 				# Rotate the piece clockwise if user pressed spacebar.
 				elif event.key == K_SPACE:
 					GAME_MANAGER.rotate()
+				# Pause or unpause the song.
+				elif event.key == K_m:
+					GAME_MANAGER.musicOnOff()
 
 		# Move always the piece down.
-		GAME_MANAGER.move(Direction.DOWN)
+		GAME_MANAGER.movePieceDown()
 
 		# Update the window
 		pygame.display.update()
