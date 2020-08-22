@@ -161,12 +161,15 @@ class GameManager:
 	Y_COORD_DIFF = 0
 	# Current shape of the piece.
 	SHAPE = Shape.SQUARE
-	# List for the possible rotations of the piece.
-	PIECES = []
-	# Index for the next rotation.
-	NEXT_PIECE = 1
 	# List of squares which constitute the piece.
 	PIECE = []
+	# List for the possible rotations of the piece.
+	PIECES = []
+	# List of squares which constitute a preview image of piece,
+	# which is used to demonstrate where the piece will be landing.
+	PREVIEW_PIECE = []
+	# Index for the next rotation.
+	NEXT_PIECE = 1
 	# Current score.
 	SCORE = 0
 
@@ -184,6 +187,31 @@ class GameManager:
 		else:
 			self.SONG = True
 			pygame.mixer.music.unpause()
+
+	def updatePreviewPiece(self, piece, clearPrevious = False):
+		if clearPrevious:
+			for square in self.PREVIEW_PIECE:
+				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
+
+		self.PREVIEW_PIECE = []
+		for square in piece:
+			self.PREVIEW_PIECE.append(Square(square.i,square.j,square.color))
+
+		down = 0
+		done = False
+		while not done:
+			moveAllowed = True
+			for square in self.PREVIEW_PIECE:
+				if GRID.isReserved(square.i, square.j + down + 1) or (square.j + down + 1) >= GRID.height:
+					moveAllowed = False
+			if not moveAllowed:
+				done = True
+			else:
+				down += 1
+
+		for square in self.PREVIEW_PIECE:
+			square.j = square.j + down
+			GRID.paintPreviewSquare(square.i,square.j,square.color)		
 
 	def newPiece(self):
 		# Pick a random color
@@ -259,6 +287,8 @@ class GameManager:
 			self.PIECES.append([Square(5,1,color),Square(5,0,color),Square(6,0,color),Square(5,-1,color)])
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(6,0,color)])
 			self.PIECES.append([Square(5,1,color),Square(4,0,color),Square(5,0,color),Square(5,-1,color)])
+
+		self.updatePreviewPiece(self.PIECE)
 	
 	def updateScore(self, rows):
 		# Player will gain 100 points for each row removed.
@@ -278,7 +308,40 @@ class GameManager:
 			square.j += 1
 			GRID.paintSquare(square.i,square.j,square.color)
 
-	
+	def movePreviewPieceRight(self):
+		for square in self.PREVIEW_PIECE:
+			if not GRID.isReserved(square.i,square.j):
+				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
+
+		up = 0
+		done = False
+		while not done:
+			moveAllowed = True
+			for square in self.PREVIEW_PIECE:
+				if GRID.isReserved(square.i + 1, square.j - up):
+					moveAllowed = False
+			if moveAllowed:
+				done = True
+			else:
+				up += 1
+
+		if up == 0:
+			done = False
+			while not done:
+				moveAllowed = True
+				for square in self.PREVIEW_PIECE:
+					if GRID.isReserved(square.i + 1, square.j - (up - 1)) or (square.j - (up - 1)) >= GRID.height:
+						moveAllowed = False
+				if not moveAllowed:
+					done = True
+				else:
+					up -= 1
+
+		for square in self.PREVIEW_PIECE:
+			square.i = square.i + 1
+			square.j = square.j - up
+			GRID.paintPreviewSquare(square.i,square.j,square.color)
+
 	def movePieceRight(self):
 		okToMove = True
 		for square in self.PIECE:
@@ -289,9 +352,43 @@ class GameManager:
 		if okToMove == True:
 			for square in self.PIECE:
 				self.moveSquare(square, Direction.RIGHT)
+			self.movePreviewPieceRight()
 			self.X_COORD_DIFF += 1
 
-	
+	def movePreviewPieceLeft(self):
+		for square in self.PREVIEW_PIECE:
+			if not GRID.isReserved(square.i,square.j):
+				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
+
+		up = 0
+		done = False
+		while not done:
+			moveAllowed = True
+			for square in self.PREVIEW_PIECE:
+				if GRID.isReserved(square.i - 1, square.j - up):
+					moveAllowed = False
+			if moveAllowed:
+				done = True
+			else:
+				up += 1
+
+		if up == 0:
+			done = False
+			while not done:
+				moveAllowed = True
+				for square in self.PREVIEW_PIECE:
+					if GRID.isReserved(square.i - 1, square.j - (up - 1)) or (square.j - (up - 1)) >= GRID.height:
+						moveAllowed = False
+				if not moveAllowed:
+					done = True
+				else:
+					up -= 1
+
+		for square in self.PREVIEW_PIECE:
+			square.i = square.i - 1
+			square.j = square.j - up
+			GRID.paintPreviewSquare(square.i,square.j,square.color)
+
 	def movePieceLeft(self):
 		okToMove = True
 		for square in self.PIECE:
@@ -302,9 +399,9 @@ class GameManager:
 		if okToMove == True:
 			for square in self.PIECE:
 				self.moveSquare(square, Direction.LEFT)
+			self.movePreviewPieceLeft()
 			self.X_COORD_DIFF -= 1
 
-	
 	def movePieceDown(self):
 		okToMove = True
 		for square in self.PIECE:
@@ -335,6 +432,8 @@ class GameManager:
 			done = False
 			while done == False:
 				done = self.movePieceDown()
+				pygame.time.wait(25)
+				pygame.display.update()
 
 	def rotate(self):
 		# Pic the next piece in the cycle.
@@ -365,6 +464,7 @@ class GameManager:
 			for square in ROTATION:
 				GRID.paintSquare(square.i,square.j,square.color)
 			self.PIECE = ROTATION
+			self.updatePreviewPiece(self.PIECES[self.NEXT_PIECE], True)
 			self.NEXT_PIECE = (self.NEXT_PIECE  + 1) % 4
 
 GAME_MANAGER = GameManager()
@@ -388,9 +488,9 @@ def main():
 				# User pressed key button. Move the current piece according
 				# to the key pressed.
 				if event.key == K_LEFT:
-					GAME_MANAGER.movePieceLeft();
+					GAME_MANAGER.movePieceLeft()
 				elif event.key == K_RIGHT:
-					GAME_MANAGER.movePieceRight();
+					GAME_MANAGER.movePieceRight()
 				# User pressed down key --> move the current peace to bottom.
 				elif event.key == K_DOWN:
 					GAME_MANAGER.pushDown()
