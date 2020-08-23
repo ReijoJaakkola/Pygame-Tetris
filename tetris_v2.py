@@ -374,7 +374,10 @@ class GameManager:
 
 	def rotate(self):
 		# Pic the next piece in the cycle.
-		ROTATION = self.PIECES[self.NEXT_PIECE]
+		ROTATION = []
+		for square in self.PIECES[self.NEXT_PIECE]:
+			ROTATION.append(Square(square.i,square.j,square.color))
+
 		# The pieces are stored in their original
 		# coordinates, so we have to first move them
 		# according to how the active piece has moved.
