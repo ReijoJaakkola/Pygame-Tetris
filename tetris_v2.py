@@ -55,6 +55,7 @@ class Grid:
 
 	def paintSquare(self,i,j,color):
 		if i >= 0 and j >= 0 and self.width > i and self.height > j:
+			self.board[i][j] = [0,color]
 			self.paint(i,j,color)
 			self.paint(i,j,pygame.Color(0,0,0),1)
 
@@ -76,6 +77,15 @@ class Grid:
 	def isReserved(self,i,j):
 		if i >= 0 and j >= 0 and self.width > i and self.height > j:
 			if self.board[i][j][0] == 1:
+				return True
+			else:
+				return False
+		else:
+			return False
+
+	def isColored(self,i,j):
+		if i >= 0 and j >= 0 and self.width > i and self.height > j:
+			if not self.board[i][j][1] == BACKGROUND_COLOR:
 				return True
 			else:
 				return False
@@ -195,7 +205,7 @@ class GameManager:
 
 	def updatePreviewPiece(self):
 		for square in self.PREVIEW_PIECE:
-			if not GRID.isReserved(square.i,square.j):
+			if not GRID.isColored(square.i,square.j):
 				GRID.paintSquare(square.i,square.j,BACKGROUND_COLOR)
 
 		self.PREVIEW_PIECE = []
@@ -216,7 +226,8 @@ class GameManager:
 
 		for square in self.PREVIEW_PIECE:
 			square.j = square.j + down
-			GRID.paintPreviewSquare(square.i,square.j,square.color)		
+			if not GRID.isColored(square.i,square.j):
+				GRID.paintPreviewSquare(square.i,square.j,square.color)		
 
 	def newPiece(self):
 		# Pick a random color
