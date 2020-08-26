@@ -21,7 +21,7 @@ BACKGROUND_COLOR = pygame.Color(0,0,0)
 # How many milliseconds one tick is.
 TICK = 25
 # How many ticks does the game wait until it moves the current piece down.
-TICKS = 20
+TICKS = 10
 
 # Window where the game takes place.
 WINDOW = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
