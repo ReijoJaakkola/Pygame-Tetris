@@ -291,28 +291,25 @@ class GameManager:
             self.updatePreviewPiece()
             self.NEXT_ROTATION = (self.NEXT_ROTATION  + 1) % 4
 
-    def handleEvents(self):
-        # Go through the events
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == KEYDOWN:
-                # User pressed key button. Move the current piece according
-                # to the key pressed.
-                if event.key == K_LEFT:
-                    self.movePieceLeft()
-                elif event.key == K_RIGHT:
-                    self.movePieceRight()
-                # User pressed down key --> move the current peace to bottom.
-                elif event.key == K_DOWN:
-                    self.pushDown()
-                # Rotate the piece clockwise if user pressed spacebar.
-                elif event.key == K_SPACE:
-                    self.rotate()
-                # Pause or unpause the song.
-                elif event.key == K_m:
-                    self.musicOnOff()
+    def handleNextEvent(self):
+        events = pygame.event.get()
+        if len(events) == 0:
+            return
+        event = events[0]
+        if event.type == QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == KEYDOWN:
+            if event.key == K_LEFT:
+                self.movePieceLeft()
+            elif event.key == K_RIGHT:
+                self.movePieceRight()
+            elif event.key == K_DOWN:
+                self.pushDown()
+            elif event.key == K_SPACE:
+                self.rotate()
+            elif event.key == K_m:
+                self.musicOnOff()
 
 def startGame(windowManager):
     ticks = 0
@@ -326,7 +323,7 @@ def startGame(windowManager):
         ticks += 1
         pygame.time.wait(TICK)
 
-        gameManager.handleEvents()
+        gameManager.handleNextEvent()
 
         if ticks == TICKS:
             ticks = 0
